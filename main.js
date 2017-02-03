@@ -4,36 +4,103 @@ import {
   StyleSheet,
   Text,
   View,
+  ScrollView
 } from 'react-native';
+import { SmoothLine } from 'react-native-pathjs-charts'
+
+gyro = Accelerometer;
 
 class App extends React.Component {
   state = {
-    accelData: {},
-    maxAccelData: {
-      maxX: 0,
-      maxY: 0,
-      maxZ: 0
-    },
+    gyroData: [
+      [{ x: 0, y: 0}],
+      [{ x: 0, y: 0}],
+      [{ x: 0, y: 0}]
+    ],
+    nextX: 0,
+    nextY: 0,
+    nextZ: 0
   }
 
   componentWillMount() {
-    Accelerometer.setUpdateInterval(0.5);
+    gyro.setUpdateInterval(200);
 
-    this._subscription = Accelerometer.addListener((result) => {
-      this.setState({accelData: result});
+    this._subscription = gyro.addListener((result) => {
+      let nextX = this.state.nextX;
+      let nextY = this.state.nextY;
+      let nextZ = this.state.nextZ;
+
+      let newX = this.state.gyroData[0].slice();
+      let newY = this.state.gyroData[1].slice();
+      let newZ = this.state.gyroData[2].slice();
+
+      newX.push({x: nextX, y: round(result.x)});
+      newY.push({x: nextY, y: round(result.y)});
+      newZ.push({x: nextZ, y: round(result.z)});
+
+      this.setState({
+        gyroData: [newX, newY, newZ],
+        nextX: nextX + 1,
+        nextY: nextY + 1,
+        nextZ: nextZ + 1,
+      });
     });
   }
 
   render() {
-    let { x, y, z } = this.state.accelData;
+    let dataX = [this.state.gyroData[0]];
+    let dataY = [this.state.gyroData[1]];
+    let dataZ = [this.state.gyroData[2]];
+
+    let options = {
+      width: 300,
+      height: 200,
+      color: '#2980B9',
+      margin: {
+        top: 50,
+        left: 15,
+        bottom: 50,
+        right: 14
+      },
+      axisX: {
+        showAxis: true,
+        showLines: false,
+        showLabels: true,
+        showTicks: false,
+        zeroAxis: false,
+        orient: 'bottom',
+        label: {
+          fontFamily: 'Arial',
+          fontSize: 8,
+          fontWeight: true,
+          fill: '#34495E'
+        }
+      },
+      axisY: {
+        showAxis: true,
+        showLines: false,
+        showLabels: true,
+        showTicks: false,
+        zeroAxis: false,
+        orient: 'left',
+        label: {
+          fontFamily: 'Arial',
+          fontSize: 8,
+          fontWeight: true,
+          fill: '#34495E'
+        }
+      }
+    }
 
     return (
-      <View style={styles.container}>
-        <Text>Open up main.js to start working on your app!</Text>
-        <Text>x: {round(x)}</Text>
-        <Text>y: {round(y)}</Text>
-        <Text>z: {round(z)}</Text>
-      </View>
+      <ScrollView>
+        <View style={styles.container}>
+          <Text>Gyro Data</Text>
+          <SmoothLine data={dataX} options={options} xKey='x' yKey='y' />
+          <SmoothLine data={dataY} options={options} xKey='x' yKey='y' />
+          <SmoothLine data={dataZ} options={options} xKey='x' yKey='y' />
+        </View>
+      </ScrollView>
     );
   }
 }
@@ -43,11 +110,14 @@ function round(n) {
     return 0;
   }
 
-  let num = Math.floor(n * 100) / 100;
-  if (num < 0) {
-    return 0;
+  return Math.floor(n * 100) / 100;
+}
+
+function roundToZero(n) {
+  if(!n || n < 0) {
+    return 0
   }
-  return num;
+  return Math.floor(n * 100) / 100;
 }
 
 const styles = StyleSheet.create({
